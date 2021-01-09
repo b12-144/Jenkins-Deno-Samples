@@ -1,0 +1,42 @@
+---
+# NAMESPACE
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: sample
+---
+# DEPLOYMENT
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-deployment
+  namespace: sample
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample
+  template:
+    metadata:
+      labels:
+        app: sample
+    spec:
+      containers:
+        - name: sample
+          image: tezine/react-sample:latest
+          ports:
+            - containerPort: 80
+---
+# LOAD BALANCER
+kind: Service
+apiVersion: v1
+metadata:
+  name: sample
+  namespace: sample
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 3000
+      targetPort: 80
+  selector:
+    app: sample

@@ -1,0 +1,103 @@
+#!groovy
+def pipelineScript= 'docker run -v /var/run/docker.sock:/var/run/docker.sock:rw -v "$(pwd)":/home/deno --entrypoint= tezine/tinyos:1.0.1 deno run --unstable --quiet -A /home/deno/pipeline.ts '
+def shouldDeploy = false
+String targetEnvironment
+String targetEnvironmentAccount
+String targetEnvironmentSlaveRole
+
+final Constants = [
+        applicationName : "Sample",
+        supportTeamEmail: "YourEmail",
+        sharedAgent     : "yourAgent",
+        branchMap       : [
+                prod: { String branchName -> branchName ==~ /master/ },
+                qual: { String branchName -> branchName ==~ /(?i)release\/.*/ },
+                devl: { String branchName -> branchName ==~ /develop/ || branchName ==~ /(?i)feature\/.*/ },
+        ],
+        slaveAccounts   : [
+                roleName: "YourRole",
+                devl    : "tbd",
+                qual    : "tbd",
+                cert    : "tbd",
+                prod    : "tbd"
+        ]
+]
+
+pipeline {
+    agent none
+    options {
+        buildDiscarder(logRotator(numToKeepStr: "7"))
+        timestamps()
+        ansiColor("xterm")
+    }
+    //parameters {
+    //    choice(name: 'terraformOperation', choices: ['create', 'delete'])
+    //}
+
+    stages {
+        stage("Find out target environment") {
+            steps {
+                script {
+                    targetEnvironment = Constants.branchMap.entrySet().find {it.value.call(env.BRANCH_NAME)}?.key
+                    shouldDeploy = targetEnvironment != null
+                    targetEnvironmentAccount = targetEnvironment != null ? Constants.slaveAccounts[targetEnvironment] : null
+                    targetEnvironmentSlaveRole = targetEnvironmentAccount != null ? "yourRole" : null                   
+                }
+            }
+        }
+
+        stage("Pipeline Prepare") {
+            agent { label Constants.sharedAgent }
+            steps {
+                pipelinePrepareJDF(Constants.applicationName, Constants.supportTeamEmail)
+            }
+        }
+
+        stage("Display Change Log") {
+            agent { label Constants.sharedAgent }
+            when { branch "master" }
+            steps {
+                displayGitChangeLogJDF(this)
+            }
+        }
+
+        // stage("Test and Build") {
+        //     agent { label Constants.sharedAgent }
+        //     steps {
+        //         script {
+        //             runWithDocker("npm ci")
+        //             runWithDocker("npm run test")
+        //             runWithDocker("npm run build")
+        //         }
+        //     }
+        // }
+
+        stage('Npm install') {
+            agent { label Constants.sharedAgent }
+            steps {
+                sh "${pipelineScript} prodJenkins npmInstall"
+            }
+        }
+
+        stage('Npm build') {
+            agent { label Constants.sharedAgent }
+            steps {
+                sh "${pipelineScript} prodJenkins npmBuild"
+            }
+        }
+
+        stage('Docker build') {
+            agent { label Constants.sharedAgent }
+            steps {
+                sh "${pipelineScript} prodJenkins dockerBuild 1.0.0"
+            }
+        }
+
+    }
+
+    post {
+        always { sendResultsNotificationJDF(this) }
+        success { serviceNowCloseTaskJDF(this, "successful", "Deployment Completed Successfully") }
+        unsuccessful { serviceNowCloseTaskJDF(this, "unsuccessful", "Deployment Failed") }
+    }
+}
