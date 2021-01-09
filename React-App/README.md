@@ -68,7 +68,7 @@ pipeline {
         stage("Pipeline Prepare") {
             agent { label Constants.sharedAgent }
             steps {
-                pipelinePrepareJDF(Constants.applicationName, Constants.supportTeamEmail)
+                pipelinePrepare(Constants.applicationName, Constants.supportTeamEmail)
             }
         }
 
@@ -76,7 +76,7 @@ pipeline {
             agent { label Constants.sharedAgent }
             when { branch "master" }
             steps {
-                displayGitChangeLogJDF(this)
+                displayGitChangeLog(this)
             }
         }
 
@@ -104,9 +104,9 @@ pipeline {
     }
 
     post {
-        always { sendResultsNotificationJDF(this) }
-        success { serviceNowCloseTaskJDF(this, "successful", "Deployment Completed Successfully") }
-        unsuccessful { serviceNowCloseTaskJDF(this, "unsuccessful", "Deployment Failed") }
+        always { sendResultsNotification(this) }
+        success { closeTask(this, "successful", "Deployment Completed Successfully") }
+        unsuccessful { closeTask(this, "unsuccessful", "Deployment Failed") }
     }
 }    
 ```

@@ -1,0 +1,48 @@
+spring:
+  profiles: prod
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://yoururl:9090/postgres #todo change this
+    username: yourUserName
+    password: yourPassword
+name: prod-YAML
+environment: production
+servers:
+  - www.abc.test.com
+  - www.xyz.test.com
+
+---
+
+spring:
+  profiles: dev
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://yoururl:9090/postgres
+    username: yourUserName
+    password: yourPassword
+name: dev-YAML
+environment: development
+servers:
+  - www.abc.com
+  - www.xyz.com
+example:
+  name: Bozo
+  girlFriend: Mafalda
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+
+#spring:
+#  datasource:
+#    password: 'password'
+#    url: jdbc:mysql://localhost:3306/db_production
+#    username: user
+#application:

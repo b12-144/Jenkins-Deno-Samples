@@ -1,0 +1,64 @@
+#!groovy
+def pipelineScript='docker run  -v /var/run/docker.sock:/var/run/docker.sock:rw -v $(pwd):/home/workspace --entrypoint= tezine/tinyos:1.0.5 deno run --unstable --quiet -A /home/workspace/pipeline.ts '
+// Variables
+def CONSTANTS = [
+        APPLICATION_NAME      : "AwesomeApp",
+        SUPPORT_TEAM_EMAIL    : "your@email.com",
+        BRANCH_ENVIRONMENT_MAP: [
+                devl: { String branchName -> branchName ==~ /master/ || branchName ==~ /develop/ || branchName ==~ /(?i)feature\/.*/ },
+        ],
+        SHARED_AGENT          : "yourAgent",
+        SLAVE_ACCOUNTS        : [
+                roleName: "operations/yourRole",
+                devl    : "yourID"
+        ]
+]
+String targetEnvironment
+String targetEnvironmentAccount
+String targetEnvironmentSlaveRole
+String AWS_REGION = "sa-east-1"
+String CLUSTER_NAME = "yourCluster"
+
+pipeline {
+    agent none
+    options {
+        buildDiscarder(logRotator(numToKeepStr: "7"))
+        timestamps()
+        ansiColor("xterm")
+    }
+
+    stages {
+        stage("Find out target environment") {
+            steps {
+                script {
+                    targetEnvironment = CONSTANTS.BRANCH_ENVIRONMENT_MAP.entrySet().find {it.value.call(env.BRANCH_NAME)}?.key
+                    targetEnvironmentAccount = targetEnvironment != null ? CONSTANTS.SLAVE_ACCOUNTS[targetEnvironment] : null
+                    targetBucket = "yourBucket"
+                    targetEnvironmentSlaveRole = targetEnvironmentAccount != null ? "yourRole" : null
+                }
+            }
+        }
+
+        stage('Gradle Build') {
+            agent { label CONSTANTS.SHARED_AGENT }
+            steps {
+                sh "${pipelineScript} prodJenkins gradleBuild"
+            }
+        }
+
+        stage('Docker Build') {
+            agent { label CONSTANTS.SHARED_AGENT }
+            steps {
+                sh "${pipelineScript} prodJenkins dockerBuild 1.0.0"
+            }
+        }
+
+        stage('Kubernetes Apply') {
+            agent { label CONSTANTS.SHARED_AGENT }
+            steps {
+                sh "${pipelineScript} prodJenkins kubernetesApply"
+            }
+        }
+
+    }
+}

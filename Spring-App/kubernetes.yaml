@@ -1,0 +1,65 @@
+---
+# NAMESPACE
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: spring-deno
+---
+# DEPLOYMENT
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-deno-deployment
+  namespace: spring-deno
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-deno
+  template:
+    metadata:
+      labels:
+        app: spring-deno
+    spec:
+      containers:
+        - name: spring-deno
+          image: tezine/spring-deno:1.0.2
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 3
+            periodSeconds: 5
+#          livenessProbe:
+#            tcpSocket:
+#              port: 9797
+#            initialDelaySeconds: 30
+#            periodSeconds: 5
+#            timeoutSeconds: 2
+#            failureThreshold: 3
+#            successThreshold: 1
+#          readinessProbe:
+#            tcpSocket:
+#              port: 9797
+#            initialDelaySeconds: 30
+#            periodSeconds: 5
+#            timeoutSeconds: 2
+#            failureThreshold: 3
+#            successThreshold: 1
+---
+# LOAD BALANCER
+kind: Service
+apiVersion: v1
+metadata:
+  name: spring-deno
+  namespace: spring-deno
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 3000
+      targetPort: 8080
+  selector:
+    app: spring-deno

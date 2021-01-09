@@ -186,9 +186,9 @@ export class Publisher {
 * Follow a few examples on how to invoke this script
 * deno standalone clone : run this script from your notebook without using jenkins, and execute the clone stage
 * deno localJenkins clone : run this script from your notebook's jenkins, and execute the clone stage
-* deno devJenkins clone : run this script from JD jenkins using development branch, and execute the clone stage
-* deno qualJenkins clone : run this script from JD jenkins using quality branch, and execute the clone stage
-* deno prodJenkins clone : run this script from JD jenkins using production branch, and execute the clone stage
+* deno devJenkins clone : run this script from your Org jenkins using development branch, and execute the clone stage
+* deno qualJenkins clone : run this script from your Org jenkins using quality branch, and execute the clone stage
+* deno prodJenkins clone : run this script from your Org jenkins using production branch, and execute the clone stage
  */
 await main();
 
